@@ -1,0 +1,126 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <groupId>io.github.baijifeilong</groupId>
+    <artifactId>baijifeilong-chat</artifactId>
+    <packaging>jar</packaging>
+    <version>1.0.0-SNAPSHOT</version>
+    <name>BaijifeilongChat</name>
+
+    <parent>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-parent</artifactId>
+        <version>2.1.4.RELEASE</version>
+    </parent>
+
+    <dependencies>
+
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-web</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-jooq</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.springframework.data</groupId>
+            <artifactId>spring-data-commons</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-configuration-processor</artifactId>
+            <optional>true</optional>
+        </dependency>
+
+        <dependency>
+            <groupId>org.assertj</groupId>
+            <artifactId>assertj-core</artifactId>
+        </dependency>
+
+
+        <dependency>
+            <groupId>org.jooq</groupId>
+            <artifactId>jooq-codegen-maven</artifactId>
+            <version>${jooq.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>mysql</groupId>
+            <artifactId>mysql-connector-java</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>javax.persistence</groupId>
+            <artifactId>persistence-api</artifactId>
+            <version>1.0.2</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+            <version>1.18.2</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.google.guava</groupId>
+            <artifactId>guava</artifactId>
+            <version>19.0</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-lang3</artifactId>
+            <version>3.9</version>
+        </dependency>
+
+        <dependency>
+            <groupId>commons-codec</groupId>
+            <artifactId>commons-codec</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>commons-beanutils</groupId>
+            <artifactId>commons-beanutils</artifactId>
+            <version>1.9.3</version>
+        </dependency>
+
+        <dependency>
+            <groupId>io.vavr</groupId>
+            <artifactId>vavr</artifactId>
+            <version>0.9.2</version>
+        </dependency>
+
+        <dependency>
+            <groupId>io.github.baijifeilong</groupId>
+            <artifactId>sql-script-runner</artifactId>
+            <version>1.0.3.RELEASE</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.eclipse.paho</groupId>
+            <artifactId>org.eclipse.paho.client.mqttv3</artifactId>
+            <version>1.2.0</version>
+        </dependency>
+    </dependencies>
+
+    <repositories>
+        <repository>
+            <id>aliyun</id>
+            <url>http://maven.aliyun.com/nexus/content/groups/public</url>
+        </repository>
+        <repository>
+		    <id>jitpack.io</id>
+		    <url>https://jitpack.io</url>
+		</repository>
+    </repositories>
+</project>

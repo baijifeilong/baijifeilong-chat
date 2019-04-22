@@ -1,0 +1,4 @@
+-- 数据库播种
+
+SELECT CURRENT_TIMESTAMP
+FROM dual;

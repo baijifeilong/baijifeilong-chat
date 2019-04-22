@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="zh" style="height: 100%; font-size: 1.5em">
+<head>
+    <meta charset="UTF-8">
+    <title>MQTTDemo</title>
+</head>
+<body style="margin: 0; display: flex; align-items: center; justify-content: center; height: 100%">
+
+<form style="min-width: 20rem;">
+    <h2>MQTTDemo</h2>
+    <div style="display:flex; ">
+        <label for="username" style="width: 0; flex-grow: 1">用户名:</label>
+        <input type="text" style="width: 0; flex-grow: 2" id="username" value="18888888888">
+    </div>
+    <div style="display:flex; margin-top: 1rem">
+        <label for="password" style="width: 0; flex-grow: 1">密码:</label>
+        <input type="text" style="width: 0; flex-grow: 2" id="password" value="741044">
+    </div>
+    <div style="display: flex; margin-top: 1rem; justify-content: flex-end">
+        <button type="submit" id="login" style="font-size: 1rem; background: inherit;">登录</button>
+    </div>
+</form>
+
+<script>
+    const apiPrefix = "http://localhost:8080";
+    const apiLogin = `${apiPrefix}/users/login`;
+
+    function httpGet(url, onSuccess, onError) {
+        const xhr = new XMLHttpRequest();
+        xhr.open("GET", url);
+        xhr.send();
+        xhr.onload = function () {
+            console.log(xhr.status);
+            if (xhr.status === 200) {
+                onSuccess(JSON.parse(xhr.responseText));
+            } else {
+                onError(JSON.parse(xhr.responseText));
+            }
+        };
+        xhr.onerror = function () {
+            onError("网络错误");
+        }
+    }
+
+    function httpPost(url, params, onSuccess, onError) {
+        const paramsString = Object.entries(params)
+            .map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(v)}`)
+            .join("&");
+        console.log(paramsString);
+        const xhr = new XMLHttpRequest();
+        xhr.open("POST", url);
+        xhr.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
+        xhr.send(paramsString);
+        xhr.onload = function () {
+            console.log(xhr.status);
+            if (xhr.status === 200) {
+                onSuccess(JSON.parse(xhr.responseText)["data"]);
+            } else {
+                onError(JSON.parse(xhr.responseText)["message"]);
+            }
+        };
+        xhr.onerror = function () {
+            onError("网络错误");
+        }
+    }
+
+    document.getElementById("login").onclick = e => {
+        const username = document.getElementById("username").value;
+        const password = document.getElementById("password").value;
+        httpPost(apiLogin, {mobile: username, password}, function (json) {
+            console.log(json);
+            sessionStorage.setItem("user", JSON.stringify({...json, password}));
+            window.location.href = window.location.href.split("?")[0].replace("login", "home");
+        }, function (error) {
+            // console.log(error);
+            alert(error);
+        });
+        return false;
+    }
+</script>
+</body>
+</html>

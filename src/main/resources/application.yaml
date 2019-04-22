@@ -1,0 +1,20 @@
+spring:
+  profiles:
+    active: local
+  application:
+    name: chat-system
+  resources:
+    add-mappings: false
+  mvc:
+    throw-exception-if-no-handler-found: true
+  datasource:
+    url: jdbc:mysql://127.0.0.1/chat?useSSL=false
+    username: root
+    password: root
+app:
+  god-password: god
+  mqtt:
+    uri: tcp://localhost
+    superuser:
+      username: root
+      password: root

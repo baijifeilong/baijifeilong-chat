@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="en" style="height: 100%; font-size: 1.2em">
+<head>
+    <meta charset="UTF-8">
+    <title>Home</title>
+    <style>
+        #groups a:not(:last-child), #contacts a:not(:last-child), #members a:not(:last-child) {
+            border-bottom: 1px dotted black;
+        }
+    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/paho-mqtt/1.0.1/mqttws31.js" type="text/javascript"></script>
+</head>
+<body style="margin: 0; display: flex; height: 100%; ">
+<div style="display: flex; flex-direction: column; box-sizing: border-box; min-width: 10rem; max-width: 15rem; height: 100%;overflow: scroll;">
+    <div id="user" style="font-size: 1.3rem; padding: 0.5rem; background: dimgray; color: white;">&lt;未登录&gt;</div>
+    <div style="font-size: 1.2rem; padding: 0.3rem; background: gray; color: white;">联系人</div>
+    <div id="contacts" style="display: flex; flex-direction: column; flex-shrink: 0">
+        <a href="#" style="padding: 0.2rem 0.3rem 0.2rem 0.3rem; text-decoration: none"></a>
+    </div>
+    <div style="font-size: 1.2rem; padding: 0.3rem; background: gray; color: white;">群组</div>
+    <div id="groups" style="display: flex; flex-direction: column">
+        <a data-group-id="0" href="#" style="padding: 0.2rem 0.3rem 0.2rem 0.3rem; text-decoration: none"></a>
+    </div>
+</div>
+<div style="display: flex; flex-direction: column; flex-grow: 1; height: 100%; background-image: radial-gradient(lightgray 50%, transparent 50%); background-size: 4px 4px">
+    <div id="messages" style="display: flex; flex-direction: column; overflow:scroll; flex-grow: 1">
+        <div style="padding: 0.3rem; display: flex; flex-direction: row-reverse; justify-content: flex-start;
+        align-items: center; flex-shrink: 0;">
+            <span class="time" style="font-size: 0.5em; background: lightgrey;">2019-01-12 16:07:02</span>
+            <span class="nickname" style="font-size: 0.8em; background: dimgray; color: white; margin: 0.2em;"></span>
+            <span class="content" style="background: white;">渊澄取映</span>
+        </div>
+    </div>
+    <div style="display: flex; padding: 0.2rem; flex-shrink: 0">
+        <input id="content" title="" type="text" style="flex-grow: 1; font-size: 1rem">
+        <button id="send" style="margin-left: 0.2rem; font-size: 1rem">发送</button>
+    </div>
+</div>
+<div style="display: flex; flex-direction: column; min-width: 10rem; max-width: 15rem; height: 100%; overflow: scroll;">
+    <div style="display: flex; flex-direction: column; flex-shrink: 0">
+        <div id="who-title"
+             style="background: dimgray; color: white; font-size: 1.3rem; border-bottom: 1px solid white; padding: 0.5rem;">
+            &lt;未选中&gt;
+        </div>
+        <div id="who-descriptions">
+            <div style="padding: 0.2rem;"></div>
+        </div>
+    </div>
+    <div id="members-container" style="display: none;">
+        <div style="font-size: 1.2rem; padding: 0.3rem; background: lightgrey;">群成员</div>
+        <div id="members" style="display: flex; flex-direction: column">
+            <a href="#" style="padding: 0.2rem 0.3rem 0.2rem 0.3rem; text-decoration: none"></a>
+        </div>
+    </div>
+</div>
+</body>
+
+<script>
+    /**
+     * 聊天系统接口
+     */
+    class ChatApi {
+        constructor() {
+            this.PREFIX = "http://localhost:8080";
+            this.QUERY_JOINED_GROUPS = "/users/{userId}/joinedGroups";
+            this.QUERY_CONTACTS = "/users/{userId}/contacts";
+            this.QUERY_GROUP_MEMBERS = "/groups/{groupId}/members";
+            this.QUERY_USER = "/users/{userId}";
+            this.QUERY_CHAT_MESSAGES = "/users/{userId}/chatWith/{anotherUserId}/messages";
+            this.QUERY_GROUP_MESSAGES = "/groups/{groupId}/messages";
+        }
+
+        httpRequest(method, path, params = {}) {
+            return new Promise((resolve, reject) => {
+                const url = `${this.PREFIX}${path}`;
+                const query = Object.entries(params).map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(v)}`).join("&");
+                const finalUrl = (method === "GET" && query === "") ? url : `${url}?${query}`;
+                const xhr = new XMLHttpRequest();
+                xhr.open(method, finalUrl);
+                if (method === "GET") xhr.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
+                xhr.send(query === "" ? null : query);
+                console.log(`[ChatApi] >>> ${method} ${url}`, params);
+                xhr.onload = () => {
+                    if (xhr.status === 200) {
+                        const data = JSON.parse(xhr.responseText)["data"];
+                        console.log("[ChatApi] <<< ", data);
+                        resolve(data);
+                    } else {
+                        try {
+                            const message = JSON.parse(xhr.responseText)["message"];
+                            console.log("[ChatApi] <<< ", xhr.status, xhr.statusText, message);
+                            reject(message);
+                        } catch (e) {
+                            const error = `${xhr.status} ${xhr.statusText}`;
+                            console.log("[ChatApi] <<< ", error);
+                            reject(error);
+                        }
+                    }
+                }
+            });
+        }
+
+        /**
+         * 查询用户加入的群组列表
+         * @param userId 用户ID
+         */
+        queryJoinedGroups(userId) {
+            return this.httpRequest("GET", this.QUERY_JOINED_GROUPS.replace("{userId}", userId));
+        }
+
+        /**
+         * 查询用户的联系人列表
+         * @param userId 用户ID
+         */
+        queryContacts(userId) {
+            return this.httpRequest("GET", this.QUERY_CONTACTS.replace("{userId}", userId));
+        }
+
+        /**
+         * 查询群组成员列表
+         * @param groupId 群组ID
+         */
+        queryGroupMembers(groupId) {
+            return this.httpRequest("GET", this.QUERY_GROUP_MEMBERS.replace("{groupId}", groupId));
+        }
+
+        /**
+         * 查询用户信息
+         * @param userId 用户ID
+         */
+        queryUser(userId) {
+            return this.httpRequest("GET", this.QUERY_USER.replace("{userId}", userId));
+        }
+
+        /**
+         * 查询两个用户的单聊历史消息分页
+         * @param userId 第一人称用户ID
+         * @param anotherUserId 第三人称用户ID
+         * @param page .
+         * @param size .
+         */
+        queryChatMessages(userId, anotherUserId, page = 1, size = 100) {
+            return this.httpRequest("GET", this.QUERY_CHAT_MESSAGES.replace("{userId}", userId)
+                .replace("{anotherUserId}", anotherUserId), {page, size});
+        }
+
+        /**
+         * 查询群组历史消息分页
+         * @param groupId 群组ID
+         * @param page .
+         * @param size .
+         */
+        queryGroupMessages(groupId, page = 1, size = 100) {
+            return this.httpRequest("GET", this.QUERY_GROUP_MESSAGES.replace("{groupId}", groupId), {page, size});
+        }
+    }
+
+    document.addEventListener("DOMContentLoaded", () => {
+        if (!sessionStorage.getItem("user")) {
+            window.location.href = window.location.href.split("?")[0].replace("home", "login");
+            return;
+        }
+        const user = JSON.parse(sessionStorage.getItem("user"));
+        console.log("Current user:", user);
+        document.getElementById("user").innerText = `${user["nickname"]}(${user["mobile"]})`;
+
+        const groupsElement = document.getElementById("groups");
+        const groupTemplateElement = groupsElement.firstElementChild;
+        groupTemplateElement.remove();
+
+        const contactsElement = document.getElementById("contacts");
+        const contactTemplateElement = contactsElement.firstElementChild;
+        contactTemplateElement.remove();
+
+        const whoTitleElement = document.getElementById("who-title");
+        const whoDescriptionsElement = document.getElementById("who-descriptions");
+        const whoDescriptionTemplateElement = whoDescriptionsElement.firstElementChild;
+        whoDescriptionTemplateElement.remove();
+
+        const membersContainerElement = document.getElementById("members-container");
+
+        const membersElement = document.getElementById("members");
+        const memberTemplateElement = membersElement.firstElementChild;
+        memberTemplateElement.remove();
+
+        const messagesElement = document.getElementById("messages");
+        const messageTemplate = messagesElement.children[0];
+        messageTemplate.remove();
+
+        const sendButtonElement = document.getElementById("send");
+        const sendContentElement = document.getElementById("content");
+
+        const chatApi = new ChatApi();
+        let currentChat = null;
+        let mqttClient;
+
+        /// 查询用户加入的群组
+        chatApi.queryJoinedGroups(user["userId"]).then(groups => {
+            groups.forEach(group => {
+                const groupElement = groupTemplateElement.cloneNode(true);
+                groupElement.innerText = group["name"];
+                groupsElement.appendChild(groupElement);
+
+                groupElement.onclick = () => {
+                    currentChat = {
+                        type: "GROUPCHAT",
+                        to: group
+                    };
+                    /// 订阅群组消息
+                    mqttClient.subscribe(`/groups/${group["groupId"]}/messages`, {
+                        onSuccess: function () {
+                            console.log("Subscribe success", arguments)
+                        }
+                    });
+                    [...groupsElement.children].forEach($ => $.style.background = "white");
+                    [...contactsElement.children].forEach($ => $.style.background = "white");
+                    groupElement.style.background = "lightgray";
+
+                    whoTitleElement.innerText = "<Loading...>";
+                    membersContainerElement.style.display = "block";
+                    chatApi.queryGroupMembers(group["groupId"]).then(members => {
+                        currentChat["to"]["members"] = members;
+                        whoTitleElement.innerText = group["name"];
+
+                        while (whoDescriptionsElement.firstChild) whoDescriptionsElement.firstChild.remove();
+                        const createdAtElement = whoDescriptionTemplateElement.cloneNode();
+                        createdAtElement.textContent = `创建时间: ${group["createdAt"]}`;
+                        whoDescriptionsElement.appendChild(createdAtElement);
+
+                        while (membersElement.firstElementChild) membersElement.firstElementChild.remove();
+                        members.forEach(member => {
+                            const memberElement = memberTemplateElement.cloneNode();
+                            memberElement.innerText = member["nickname"];
+                            membersElement.appendChild(memberElement);
+                        })
+                    });
+
+                    [...messagesElement.children].forEach($ => $.remove());
+                    chatApi.queryGroupMessages(group["groupId"]).then(({items: messages}) => {
+                        messages.reverse().forEach(message => {
+                            const messageElement = messageTemplate.cloneNode(true);
+                            const timeElement = messageElement.children[0];
+                            const nicknameElement = messageElement.children[1];
+                            const contentElement = messageElement.children[2];
+                            timeElement.textContent = message["createdAt"];
+                            if (message["fromId"] !== user["userId"]) nicknameElement.textContent = message["fromNickname"];
+                            contentElement.textContent = message["content"];
+                            messageElement.style.flexDirection = message["fromId"] === user["userId"] ? "row-reverse" : "row";
+                            messagesElement.appendChild(messageElement);
+                        });
+                        // messagesElement.scrollIntoView(false);
+                        messagesElement.scrollTop = messagesElement.scrollHeight;
+                    })
+                };
+            })
+        });
+
+        /// 查询联系人列表
+        chatApi.queryContacts(user["userId"]).then(contacts => {
+            contacts.forEach(contact => {
+                const contactElement = contactTemplateElement.cloneNode(true);
+                contactElement.innerText = contact["remarkNameOrNickname"];
+                contactsElement.appendChild(contactElement);
+
+                contactElement.onclick = () => {
+                    currentChat = {
+                        type: "CHAT",
+                        to: contact
+                    };
+                    while (whoDescriptionsElement.firstChild) whoDescriptionsElement.firstChild.remove();
+                    const createdAtElement = whoDescriptionTemplateElement.cloneNode();
+                    createdAtElement.textContent = `手机号: ${contact["mobile"]}`;
+                    whoDescriptionsElement.appendChild(createdAtElement);
+                    [...groupsElement.children].forEach($ => $.style.background = "white");
+                    [...contactsElement.children].forEach($ => $.style.background = "white");
+                    contactElement.style.background = "lightgray";
+
+                    whoTitleElement.innerText = "<Loading...>";
+                    membersContainerElement.style.display = "none";
+
+                    chatApi.queryUser(contact["contactUserId"]).then(user => {
+                        whoTitleElement.innerText = `${contact["remarkNameOrNickname"]}(${user["nickname"]})`
+                    });
+
+                    [...messagesElement.children].forEach($ => $.remove());
+                    chatApi.queryChatMessages(user["userId"], contact["contactUserId"]).then(({items: messages}) => {
+                        console.log(messages);
+                        messages.reverse().forEach(message => {
+                            const messageElement = messageTemplate.cloneNode(true);
+                            const timeElement = messageElement.children[0];
+                            const contentElement = messageElement.children[2];
+                            timeElement.textContent = message["createdAt"];
+                            contentElement.textContent = message["content"];
+                            messageElement.style.flexDirection = message["fromId"] === user["userId"] ? "row-reverse" : "row";
+                            messagesElement.appendChild(messageElement);
+                        })
+                    });
+                }
+            })
+        });
+
+        /// 创建MQTT客户端 参数: 主机, 端口, 路径, 客户端ID
+        mqttClient = new Paho.MQTT.Client("localhost", 1888, "", `${user["userId"]}/default`);
+        console.log("MQTTClient", mqttClient);
+        /// 注册断线监听
+        mqttClient.onConnectionLost = () => alert("Disconnected from the MQTT server");
+        /// 注册接收消息监听
+        mqttClient.onMessageArrived = function (ev) {
+            console.log("Message arrived:", ev.destinationName, ev.payloadString);
+            const message = JSON.parse(ev.payloadString);
+            if (message["fromId"] === user["userId"]) return;
+            const messageElement = messageTemplate.cloneNode(true);
+            messagesElement.appendChild(messageElement);
+            messageElement.style.flexDirection = "row";
+            const timeElement = messageElement.children[0];
+            const nicknameElement = messageElement.children[1];
+            const contentElement = messageElement.children[2];
+            timeElement.textContent = new Date().toLocaleString();
+            contentElement.textContent = message["content"];
+            if (currentChat["type"] === "GROUPCHAT") {
+                const members = currentChat["to"]["members"];
+                const fromMember = members.filter($ => $["userId"] === message["fromId"]).pop();
+                nicknameElement.textContent = fromMember["nickname"];
+            }
+            messageElement.scrollIntoView({});
+        };
+        /// 注册发送消息监听
+        mqttClient.onMessageDelivered = function (ev) {
+            console.log("Message delivered: ", ev.destinationName, "=>", ev.payloadString);
+            const message = JSON.parse(ev.payloadString);
+            const messageElement = messageTemplate.cloneNode(true);
+            messagesElement.appendChild(messageElement);
+            const timeElement = messageElement.children[0];
+            const contentElement = messageElement.children[2];
+            timeElement.textContent = new Date().toLocaleString();
+            contentElement.textContent = message["content"];
+            sendContentElement.value = "";
+            messageElement.scrollIntoView({});
+        };
+        /// 登录MQTT服务器 参数: 用户名, 密码, 登录成功回调, 登录失败回调
+        mqttClient.connect({
+            userName: user["mobile"],
+            password: user["password"],
+            onSuccess: () => {
+                console.log("Success");
+                mqttClient.subscribe(`/users/${user["userId"]}/messages`, {
+                    onSuccess: () => console.log("Subscribe success")
+                });
+            },
+            onFailure: () => alert("Unable connect to MQTT server")
+        });
+
+        sendButtonElement.onclick = function () {
+            if (!currentChat) return;
+            const content = sendContentElement.value;
+            if (!content) return;
+            console.log("currentChat: ", currentChat);
+            const type = currentChat["type"];
+            const fromId = user["userId"];
+            const toId = type === "CHAT" ? currentChat["to"]["contactUserId"] : currentChat["to"]["groupId"];
+            const topic = type === "CHAT" ? `/users/${toId}/messages` : `/groups/${toId}/messages`;
+            const message = {type, fromId, toId, content};
+            mqttClient.send(topic, JSON.stringify(message));
+        };
+
+        sendContentElement.onkeyup = function (ev) {
+            ev.key === "Enter" && sendButtonElement.click();
+        }
+    });
+</script>
+</html>
