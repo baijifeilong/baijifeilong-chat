@@ -1,5 +1,116 @@
 # 基于MQTT的聊天系统演示
 
+## 系统架构
+
+- 后端 SpringBoot + SpringMVC + JOOQ
+- 前端 HTML5 + ES6 + CSS3
+- 中间件 MySQL + Mosquitto
+
+## 目录结构
+
+```
+├── README.md
+├── pom.xml
+└── src
+    ├── main
+    │   ├── java
+    │   │   └── io
+    │   │       └── github
+    │   │           └── baijifeilong
+    │   │               └── chat
+    │   │                   ├── App.java
+    │   │                   ├── config
+    │   │                   │   ├── AppConfig.java
+    │   │                   │   └── MyControllerAdvice.java
+    │   │                   ├── controller
+    │   │                   │   ├── AuthController.java
+    │   │                   │   ├── ContactController.java
+    │   │                   │   ├── GroupController.java
+    │   │                   │   ├── MessageController.java
+    │   │                   │   └── UserController.java
+    │   │                   ├── domain
+    │   │                   │   ├── ApiFailure.java
+    │   │                   │   ├── ApiPage.java
+    │   │                   │   ├── ApiSuccess.java
+    │   │                   │   ├── Contact.java
+    │   │                   │   ├── ContactTable.java
+    │   │                   │   ├── Group.java
+    │   │                   │   ├── GroupUserRelation.java
+    │   │                   │   ├── Message.java
+    │   │                   │   ├── MessageTable.java
+    │   │                   │   └── User.java
+    │   │                   ├── exception
+    │   │                   │   ├── BizException.java
+    │   │                   │   ├── BizExceptionEnum.java
+    │   │                   │   ├── FuzzyException.java
+    │   │                   │   ├── RegisterException.java
+    │   │                   │   └── UserNotFoundException.java
+    │   │                   ├── generated
+    │   │                   │   └── jooq
+    │   │                   │       ├── DefaultCatalog.java
+    │   │                   │       ├── chat
+    │   │                   │       │   ├── Chat.java
+    │   │                   │       │   ├── Indexes.java
+    │   │                   │       │   ├── Keys.java
+    │   │                   │       │   ├── Tables.java
+    │   │                   │       │   └── tables
+    │   │                   │       │       ├── Contact.java
+    │   │                   │       │       ├── Group.java
+    │   │                   │       │       ├── GroupUserRelation.java
+    │   │                   │       │       ├── Message.java
+    │   │                   │       │       ├── User.java
+    │   │                   │       │       └── records
+    │   │                   │       │           ├── ContactRecord.java
+    │   │                   │       │           ├── GroupRecord.java
+    │   │                   │       │           ├── GroupUserRelationRecord.java
+    │   │                   │       │           ├── MessageRecord.java
+    │   │                   │       │           └── UserRecord.java
+    │   │                   │       └── thatcher
+    │   │                   │           ├── Indexes.java
+    │   │                   │           ├── Keys.java
+    │   │                   │           ├── Tables.java
+    │   │                   │           ├── Thatcher.java
+    │   │                   │           └── tables
+    │   │                   │               ├── GreatUser.java
+    │   │                   │               └── records
+    │   │                   │                   └── GreatUserRecord.java
+    │   │                   ├── service
+    │   │                   │   ├── ContactService.java
+    │   │                   │   ├── GroupService.java
+    │   │                   │   ├── MessageService.java
+    │   │                   │   └── UserService.java
+    │   │                   └── worker
+    │   │                       └── MqttWorker.java
+    │   └── resources
+    │       ├── application.yaml
+    │       ├── doc
+    │       │   └── chat.md
+    │       ├── sql
+    │       │   ├── ddl.0001.sql
+    │       │   ├── inspector.0001.sql
+    │       │   └── seeder.0001.sql
+    │       └── ui
+    │           ├── home.html
+    │           └── login.html
+    └── test
+        └── java
+            └── io
+                └── github
+                    └── baijifeilong
+                        └── chat
+                            ├── AppTest.java
+                            ├── tmp
+                            │   └── FooTest.java
+                            ├── tool
+                            │   ├── InitAll.java
+                            │   ├── MyDatabaseMigration.java
+                            │   ├── MyEnvironment.java
+                            │   ├── MyJooqGenerator.java
+                            │   └── MySeeder.java
+                            └── util
+                                └── Articles.java
+```
+
 ## 1. 基本架构
 
 - 通信协议 [MQTT](http://mqtt.org/)
